@@ -3,35 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>野鳥音声記録アプリ v3</title>
+    <title>音声カタカナ記録ロガー</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-12">
     <div class="max-w-md mx-auto p-4 flex flex-col min-h-screen">
         <header class="mb-4 text-center">
-            <h1 class="text-2xl font-bold text-green-700">野鳥ボイスロガー</h1>
-            <p class="text-xs text-gray-500 mt-1">自動カタカナ変換＆タイムスタンプ記録</p>
+            <h1 class="text-2xl font-bold text-blue-700">音声カタカナロガー</h1>
+            <p class="text-xs text-gray-500 mt-1">すべての入力を自動でカタカナ変換＆タイムスタンプ記録</p>
         </header>
 
         <!-- 入力パネル -->
         <div class="bg-white rounded-2xl shadow p-4 mb-4">
-            <label for="birdInput" class="block text-sm text-gray-600 mb-2">下の枠をタップして音声入力してください</label>
+            <label for="wordInput" class="block text-sm text-gray-600 mb-2">下の枠をタップしてキーボードのマイクで入力</label>
             
             <div class="flex gap-2">
-                <input type="text" id="birdInput" placeholder="例: ツメナガセキレイ" 
-                    class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input type="text" id="wordInput" placeholder="例: セグロセキレイ" 
+                    class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 
-                <button type="button" onclick="addRecordFromInput()" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold px-5 py-3 rounded-xl shadow transition">
+                <button type="button" onclick="addRecordFromInput()" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold px-5 py-3 rounded-xl shadow transition">
                     追加
                 </button>
             </div>
+            <p class="text-xs text-gray-400 mt-2">※どんな言葉でも自動で全角カタカナに変換されます</p>
         </div>
 
         <!-- 記録管理・出力ボタン -->
         <div class="flex justify-between items-center mb-3">
             <h2 class="font-bold text-gray-700">記録一覧 (<span id="count">0</span>件)</h2>
             <div class="space-x-2">
-                <button type="button" onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg shadow">
+                <button type="button" onclick="exportCSV()" class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded-lg shadow">
                     CSV出力
                 </button>
                 <button type="button" onclick="clearAll()" class="bg-red-50 hover:bg-red-100 text-red-600 text-sm px-3 py-1.5 rounded-lg">
@@ -49,47 +50,19 @@
     <script>
         let records = [];
         try {
-            const saved = localStorage.getItem('bird_records_v3');
+            const saved = localStorage.getItem('universal_katakana_records');
             if (saved) records = JSON.parse(saved);
         } catch (e) {
             records = [];
         }
 
-        const birdDictionary = {
-            "爪長セキレイ": "ツメナガセキレイ", "爪長鶺鴒": "ツメナガセキレイ", "爪長せきれい": "ツメナガセキレイ", "つめながせきれい": "ツメナガセキレイ",
-            "40カラ": "シジュウカラ", "４０カラ": "シジュウカラ", "四十雀": "シジュウカラ", "しじゅうから": "シジュウカラ",
-            "目白": "メジロ", "めじろ": "メジロ",
-            "雀": "スズメ", "すずめ": "スズメ",
-            "烏": "カラス", "からす": "カラス",
-            "鳩": "ハト", "はと": "ハト",
-            "燕": "ツバメ", "つばめ": "ツバメ",
-            "川蝉": "カワセミ", "かわせみ": "カワセミ",
-            "鵯": "ヒヨドリ", "ひよどり": "ヒヨドリ",
-            "山雀": "ヤマガラ", "やまがら": "ヤマガラ",
-            "柄長": "エナガ", "えなが": "エナガ",
-            "百舌": "モズ", "もず": "モズ",
-            "鶯": "ウグイス", "うぐいす": "ウグイス",
-            "白セキレイ": "ハクセキレイ", "白鶺鴒": "ハクセキレイ",
-            "黄セキレイ": "キセキレイ", "黄鶺鴒": "キセキレイ"
-        };
-
-        const partDictionary = {
-            "40": "シジュウ", "４０": "シジュウ", "四十": "シジュウ", "四拾": "シジュウ",
-            "爪長": "ツメナガ", "セキレイ": "セキレイ", "鶺鴒": "セキレイ", "せきれい": "セキレイ",
-            "目白": "メジロ", "雀": "スズメ", "烏": "カラス", "鳩": "ハト", 
-            "燕": "ツバメ", "川蝉": "カワセミ", "鵯": "ヒヨドリ", 
-            "山雀": "ヤマガラ", "柄長": "エナガ", "百舌": "モズ",
-            "白": "ハク", "黄": "キ", "赤": "アカ", "青": "アオ", "黒": "クロ",
-            "大": "オオ", "小": "コ", "中": "チュウ"
-        };
-
-        const inputElement = document.getElementById('birdInput');
+        const inputElement = document.getElementById('wordInput');
 
         function addRecordFromInput() {
             const rawText = inputElement.value.trim();
             if (!rawText) return;
 
-            // 最終的な確定時にしっかりカタカナ変換を通す
+            // 入力された言葉をすべて全角カタカナに変換
             const katakanaName = convertToKatakana(rawText);
             
             const now = new Date();
@@ -101,105 +74,4 @@
                 String(now.getSeconds()).padStart(2, '0');
 
             records.push({ id: Date.now(), name: katakanaName, time: timeString });
-            saveAndRender();
-
-            inputElement.value = '';
-            inputElement.focus();
-        }
-
-        inputElement.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addRecordFromInput();
-            }
-        });
-
-        function convertToKatakana(str) {
-            let cleanStr = str.trim().replace(/[\s ]/g, "")
-                .replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xFEE0));
-            
-            if (birdDictionary[cleanStr]) {
-                return birdDictionary[cleanStr];
-            }
-
-            let converted = cleanStr;
-            const sortedKeys = Object.keys(partDictionary).sort((a, b) => b.length - a.length);
-            for (let key of sortedKeys) {
-                if (converted.includes(key)) {
-                    converted = converted.split(key).join(partDictionary[key]);
-                }
-            }
-
-            return converted.replace(/[\u3041-\u3096]/g, function(match) {
-                return String.fromCharCode(match.charCodeAt(0) + 0x60);
-            });
-        }
-
-        function deleteRecord(id) {
-            records = records.filter(r => r.id !== id);
-            saveAndRender();
-        }
-
-        function clearAll() {
-            if (confirm('すべての記録を削除しますか？')) {
-                records = [];
-                saveAndRender();
-            }
-        }
-
-        function saveAndRender() {
-            try {
-                localStorage.setItem('bird_records_v3', JSON.stringify(records));
-            } catch (e) {}
-            renderList();
-        }
-
-        function renderList() {
-            const listEl = document.getElementById('recordList');
-            document.getElementById('count').innerText = records.length;
-            
-            if (records.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-gray-400 py-8 bg-white rounded-xl shadow-sm">まだ記録がありません</div>';
-                return;
-            }
-
-            listEl.innerHTML = records.map((r, idx) => `
-                <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border-l-4 border-green-500">
-                    <div>
-                        <div class="font-bold text-lg text-gray-800">${idx + 1}. ${r.name}</div>
-                        <div class="text-xs text-gray-500 mt-0.5">${r.time}</div>
-                    </div>
-                    <button type="button" onclick="deleteRecord(${r.id})" class="text-gray-400 hover:text-red-500 p-2">
-                        削除
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function exportCSV() {
-            if (records.length === 0) {
-                alert('出力する記録がありません。');
-                return;
-            }
-
-            let csv = '\uFEFFNo,記録日時,鳥の名前（カタカナ）\n';
-            records.forEach((r, index) => {
-                const escapedName = r.name.replace(/"/g, '""');
-                csv += `${index + 1},"${r.time}","${escapedName}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `野鳥観察記録_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        renderList();
-    </script>
-</body>
-</html>
+            save

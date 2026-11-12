@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>野鳥音声記録アプリ v2</title>
+    <title>野鳥音声記録アプリ v3</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans pb-12">
@@ -19,7 +19,6 @@
             
             <div class="flex gap-2">
                 <input type="text" id="birdInput" placeholder="例: ツメナガセキレイ" 
-                    oninput="handleLiveInput(this)"
                     class="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 
                 <button type="button" onclick="addRecordFromInput()" class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold px-5 py-3 rounded-xl shadow transition">
@@ -41,7 +40,7 @@
             </div>
         </div>
 
-        <!-- 記録リスト（下側に順に追加表示） -->
+        <!-- 記録リスト -->
         <div id="recordList" class="space-y-2 flex-1 pb-6">
             <div class="text-center text-gray-400 py-8 bg-white rounded-xl shadow-sm">まだ記録がありません</div>
         </div>
@@ -50,13 +49,12 @@
     <script>
         let records = [];
         try {
-            const saved = localStorage.getItem('bird_records_v2');
+            const saved = localStorage.getItem('bird_records_v3');
             if (saved) records = JSON.parse(saved);
         } catch (e) {
             records = [];
         }
 
-        // 変換辞書
         const birdDictionary = {
             "爪長セキレイ": "ツメナガセキレイ", "爪長鶺鴒": "ツメナガセキレイ", "爪長せきれい": "ツメナガセキレイ", "つめながせきれい": "ツメナガセキレイ",
             "40カラ": "シジュウカラ", "４０カラ": "シジュウカラ", "四十雀": "シジュウカラ", "しじゅうから": "シジュウカラ",
@@ -85,29 +83,13 @@
             "大": "オオ", "小": "コ", "中": "チュウ"
         };
 
-        // 入力欄の文字が変化した瞬間にリアルタイム変換（日本語変換確定前を除く）
-        let isComposing = false;
         const inputElement = document.getElementById('birdInput');
-        
-        inputElement.addEventListener('compositionstart', () => { isComposing = true; });
-        inputElement.addEventListener('compositionend', () => {
-            isComposing = false;
-            handleLiveInput(inputElement);
-        });
-
-        function handleLiveInput(el) {
-            if (isComposing) return;
-            const converted = convertToKatakana(el.value);
-            if (el.value !== converted) {
-                el.value = converted;
-            }
-        }
 
         function addRecordFromInput() {
-            const inputEl = document.getElementById('birdInput');
-            const rawText = inputEl.value.trim();
+            const rawText = inputElement.value.trim();
             if (!rawText) return;
 
+            // 最終的な確定時にしっかりカタカナ変換を通す
             const katakanaName = convertToKatakana(rawText);
             
             const now = new Date();
@@ -121,18 +103,19 @@
             records.push({ id: Date.now(), name: katakanaName, time: timeString });
             saveAndRender();
 
-            inputEl.value = '';
+            inputElement.value = '';
+            inputElement.focus();
         }
 
         inputElement.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !isComposing) {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 addRecordFromInput();
             }
         });
 
         function convertToKatakana(str) {
-            let cleanStr = str.replace(/[\s ]/g, "")
+            let cleanStr = str.trim().replace(/[\s ]/g, "")
                 .replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xFEE0));
             
             if (birdDictionary[cleanStr]) {
@@ -147,7 +130,6 @@
                 }
             }
 
-            // ひらがなをカタカナに変換
             return converted.replace(/[\u3041-\u3096]/g, function(match) {
                 return String.fromCharCode(match.charCodeAt(0) + 0x60);
             });
@@ -167,7 +149,7 @@
 
         function saveAndRender() {
             try {
-                localStorage.setItem('bird_records_v2', JSON.stringify(records));
+                localStorage.setItem('bird_records_v3', JSON.stringify(records));
             } catch (e) {}
             renderList();
         }
